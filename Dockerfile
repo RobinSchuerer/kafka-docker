@@ -1,26 +1,25 @@
 FROM anapsix/alpine-java
 
-ARG kafka_version=0.11.0.0
-ARG scala_version=2.12
+MAINTAINER Robin Schürer <robin.schuerer@gmail.com>
 
-MAINTAINER wurstmeister
-
+# Packages
 RUN apk add --update unzip wget curl docker jq coreutils
 
-ENV KAFKA_VERSION=$kafka_version SCALA_VERSION=$scala_version
-ADD download-kafka.sh /tmp/download-kafka.sh
-RUN chmod a+x /tmp/download-kafka.sh && sync && /tmp/download-kafka.sh && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && ln -s /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka
+#Download kafka
+RUN echo "Downloading Kafka"
+RUN echo "wget -q http://ftp.halifax.rwth-aachen.de/apache/kafka/0.10.1.0/kafka_2.11-0.10.1.0.tgz -O /tmp/kafka_2.11-0.10.1.0.tgz"
+RUN wget -q http://ftp.halifax.rwth-aachen.de/apache/kafka/0.10.1.0/kafka_2.11-0.10.1.0.tgz -O /tmp/kafka_2.11-0.10.1.0.tgz
 
-VOLUME ["/kafka"]
+RUN echo "Extracting"
+RUN echo "tar xfz /tmp/kafka_2.11-0.10.1.0.tgz -C /opt"
+RUN tar xfz /tmp/kafka_2.11-0.10.1.0.tgz -C /opt
 
-ENV KAFKA_HOME /opt/kafka
-ENV PATH ${PATH}:${KAFKA_HOME}/bin
-ADD start-kafka.sh /usr/bin/start-kafka.sh
-ADD broker-list.sh /usr/bin/broker-list.sh
-ADD create-topics.sh /usr/bin/create-topics.sh
-# The scripts need to have executable permission
-RUN chmod a+x /usr/bin/start-kafka.sh && \
-    chmod a+x /usr/bin/broker-list.sh && \
-    chmod a+x /usr/bin/create-topics.sh
-# Use "exec" form so that it runs as PID 1 (useful for graceful shutdown)
-CMD ["start-kafka.sh"]
+RUN echo "Creating symlink"
+RUN echo "ln -s /opt/kafka_2.11-0.10.1.0 /opt/kafka"
+RUN ln -s /opt/kafka_2.11-0.10.1.0 /opt/kafka
+
+VOLUME ["/kafka-logs", "/config"]
+
+ENV PATH ${PATH}:/opt/kafka/bin
+
+CMD kafka-server-start.sh /config/server.properties
